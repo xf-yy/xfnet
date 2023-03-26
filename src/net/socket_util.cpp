@@ -22,34 +22,42 @@ using namespace xfutil;
 
 namespace xfnet 
 {
-    const int SocketUtil::EVENT_READ = POLLIN | POLLPRI;
-    const int SocketUtil::EVENT_WRITE = POLLOUT;
-    const int SocketUtil::EVENT_READWRITE = SocketUtil::EVENT_READ | SocketUtil::EVENT_WRITE;
+    
+const int SocketUtil::EVENT_READ = POLLIN | POLLPRI;
+const int SocketUtil::EVENT_WRITE = POLLOUT;
+const int SocketUtil::EVENT_READWRITE = SocketUtil::EVENT_READ | SocketUtil::EVENT_WRITE;
 
-    int SocketUtil::Open(int family/* = AF_INET*/)
+int SocketUtil::Open(int family/* = AF_INET*/)
+{
+    int fd = socket(family, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, IPPROTO_TCP);
+    if(fd != INVALID_SOCKET)
     {
-        int fd = socket(family, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, IPPROTO_TCP);
-        if(fd != INVALID_SOCKET)
-        {
-            SetNoDelay(fd, true);
-            SetKeepAlive(fd, true);
-        }
-        return fd;
+        SetNoDelay(fd, true);
+        SetKeepAlive(fd, true);
     }
+    return fd;
+}
 
-    bool SocketUtil::SetNonBlock(int fd, bool on)
+bool SocketUtil::SetNonBlock(int fd, bool on)
+{
+    int flags = ::fcntl(fd, F_GETFL);
+    if(on)
     {
-        int flags = ::fcntl(fd, F_GETFL);
-        if(on)
-        {
-            flags |= O_NONBLOCK;
-        }
-        else
-        {
-            flags &= (~O_NONBLOCK);
-        }
-        return ::fcntl(fd, F_SETFL, flags) == 0;
+        flags |= O_NONBLOCK;
     }
+    else
+    {
+        flags &= (~O_NONBLOCK);
+    }
+    return ::fcntl(fd, F_SETFL, flags) == 0;
+}
+
+bool SocketUtil::IsNonBlock(int fd)
+{
+    int flags = ::fcntl(fd, F_GETFL);
+    return (flags & O_NONBLOCK);
+}
+
 
 bool SocketUtil::SetReuseAddr(int fd, bool on)
 {
@@ -69,21 +77,21 @@ bool SocketUtil::SetReuseAddr(int fd, bool on)
 
 
 #if 0
-    bool SocketUtil::SetSendTimeout(uint32_t timeout_ms)
-    {
-        struct timeval tv;
-        tv.tv_sec = timeout_ms / 1000;
-        tv.tv_usec = (timeout_ms % 1000) * 1000;        
-        return (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof(tv)) == 0);
+bool SocketUtil::SetSendTimeout(uint32_t timeout_ms)
+{
+    struct timeval tv;
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;        
+    return (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof(tv)) == 0);
 
-    }
-    bool SocketUtil::SetRecvTimeout(uint32_t timeout_ms)
-    {
-        struct timeval tv;
-        tv.tv_sec = timeout_ms / 1000;
-        tv.tv_usec = (timeout_ms % 1000) * 1000;        
-        return (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) == 0);
-    }
+}
+bool SocketUtil::SetRecvTimeout(uint32_t timeout_ms)
+{
+    struct timeval tv;
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;        
+    return (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) == 0);
+}
 #endif
 
 int SocketUtil::Select(int fd, int events, uint32_t timeout_ms)

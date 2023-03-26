@@ -29,36 +29,34 @@ namespace xfnet
 Stream Connector::Connect(Address& addr, int timeout_ms)
 {
     int fd = SocketUtil::Open(addr.Family());
-    if(fd != INVALID_SOCKET)
+    if(fd == INVALID_SOCKET)
     {
-    connect_again:        
+        return Stream(fd);
+    }    
+    for(;;)
+    {
         int ret = connect(fd, addr.SockAddr(), addr.Size());
-        if(ret != 0)
+        if(ret == 0)
         {
-            if(errno == EINPROGRESS)
-            {
-                int events = SocketUtil::Select(fd, SocketUtil::EVENT_WRITE, timeout_ms);
-                if(events <= 0)
-                {
-                    close(fd);
-                    fd = INVALID_SOCKET;
-                }
-            }
-            else if(errno != EINTR)
-            {
-                close(fd);
-                fd = INVALID_SOCKET;
-
-            }
-            else
-            {
-                goto connect_again;
-            }
-
+            return Stream(fd);
         }
-
+        if(errno == EINPROGRESS)
+        {
+            int events = SocketUtil::Select(fd, SocketUtil::EVENT_WRITE, timeout_ms);
+            if(events <= 0)
+            {
+                break;
+            }
+        }
+        else if(errno != EINTR)
+        {
+            break;
+        }
     }
-    return Stream(fd);
+    close(fd);
+    fd = INVALID_SOCKET;
+    return Stream(fd);        
+
 }
 
 

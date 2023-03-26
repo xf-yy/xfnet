@@ -34,6 +34,7 @@ public:
     static int Open(int family = AF_INET);
     static bool SetReuseAddr(int fd, bool on);
     static bool SetNonBlock(int fd, bool on); 
+    static bool IsNonBlock(int fd);
     static bool SetNoDelay(int fd, bool on)
     {
         int option = on ? 1 : 0;

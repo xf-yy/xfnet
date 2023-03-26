@@ -18,6 +18,8 @@
  
 ```  
     //client样例
+    Address addr("127.0.0.1", 1981); 
+
     Stream stream = Connector::Connect(addr, 10*1000);
     if(!stream.Valid())
     {
@@ -28,7 +30,9 @@
     char buf[1024];
     char buf2[1024];
     {
-        int len = rand() % 1000;
+        //通讯协议[body_size][body]
+        //        4B         size
+        int len = 1000;
         *(int*)buf = len;
 
         int wlen = stream.Send(buf, len+4, 10*1000);
@@ -38,7 +42,6 @@
         assert(rlen == 1);
 
         assert(memcmp(buf, buf2, len+4) == 0);
-        memset(buf2, 0x00, sizeof(buf2));
     }	
 
     //server端样例参考tools\server_exapmple.cpp

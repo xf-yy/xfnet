@@ -53,21 +53,27 @@ void Acceptor::Close()
     }
 }
 
+Stream Acceptor::Accept(Address& addr)
+{
+    socklen_t len = addr.Size();
+    int fd = accept4(m_fd, addr.SockAddr(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC); 
+    return Stream(fd);    
+}
 
 Stream Acceptor::Accept(Address& addr, uint32_t timeout_ms)
 {
-    int fd;
-    int events = SocketUtil::Select(m_fd, SocketUtil::EVENT_READ, timeout_ms);
-    if(events > 0 && (events & SocketUtil::EVENT_READ))
+    socklen_t len = addr.Size();
+    int fd = accept4(m_fd, addr.SockAddr(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC); 
+    if(fd == INVALID_SOCKET)
     {
-        socklen_t len = addr.Size();
-        fd = accept4(m_fd, addr.SockAddr(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC); 
+        int events = SocketUtil::Select(m_fd, SocketUtil::EVENT_READ, timeout_ms);
+        if(events > 0 && (events & SocketUtil::EVENT_READ))
+        {
+            fd = accept4(m_fd, addr.SockAddr(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC); 
+        }
     }
-    else
-    {
-        fd = INVALID_SOCKET;
-    }
-    return std::move(Stream(fd));
+
+    return Stream(fd);
 
 }
 

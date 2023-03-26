@@ -28,10 +28,11 @@ using namespace xfutil;
 namespace xfnet 
 {
 
+//nonblock
 class Stream
 {
 public:
-    Stream(int fd = INVALID_SOCKET);
+    explicit Stream(int fd = INVALID_SOCKET);
 
     // 移动构造函数
     Stream(Stream&& other)
@@ -43,11 +44,11 @@ public:
     ~Stream();
 
 public:
-    bool Valid()
+    bool Valid() const
     {
         return m_fd != INVALID_SOCKET;
     }
-    int fd()
+    int fd() const
     {
         return m_fd;
     }

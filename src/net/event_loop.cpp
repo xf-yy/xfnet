@@ -43,6 +43,7 @@ namespace xfnet
         {
             return;
         }
+        m_state = STATE_STOPPING;
         m_thread.Join();
         m_selector.Close();
         m_state = STATE_STOPPED;
@@ -59,11 +60,13 @@ namespace xfnet
     
     bool EventLoop::Unregister(EventHandlerPtr& handler)
     {
+        EventHandler* h = handler.get();
+
         m_mutex.lock();
-        size_t cnt = m_handlers.erase(handler.get());
+        size_t cnt = m_handlers.erase(h);
         m_mutex.unlock();     
         
-        return cnt == 0 || m_selector.Unregister(handler.get());
+        return cnt == 0 || m_selector.Unregister(h);
     }
 
 

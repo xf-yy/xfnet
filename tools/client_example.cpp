@@ -62,10 +62,18 @@ int main(int argc, char* argv[])
         *(int*)buf = len;
 
         int wlen = stream.Send(buf, len+HEAD_SIZE, 10*1000);
-        assert(wlen == 1);
+        if(wlen != 1)
+        {
+            printf("send failed, errno:%d\n",  errno);
+            break;
+        }
 
         int rlen = stream.Recv(buf2, len+HEAD_SIZE, 10*1000);
-        assert(rlen == 1);
+        if(rlen != 1)
+        {
+            printf("recv failed, errno:%d\n",  errno);
+            break;
+        }
 
         assert(memcmp(buf, buf2, len+HEAD_SIZE) == 0);
         memset(buf2, 0x00, MAX_SIZE);

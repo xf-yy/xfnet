@@ -54,6 +54,7 @@ void TcpServer::Stop()
     {
         return;
     }
+    m_state = STATE_STOPPING;
     m_accept_thread.Join();
     m_loop_group.Stop();
     m_acceptor.Close();

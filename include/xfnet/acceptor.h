@@ -41,6 +41,7 @@ public:
 
     void Close();
 
+    Stream Accept(Address& addr);
     Stream Accept(Address& addr, uint32_t timeout_ms);
 
 private:

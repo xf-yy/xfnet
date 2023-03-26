@@ -47,9 +47,6 @@ public:
 
     static Stream Connect(Address& addr, int timeout_ms);
 
-
-private:
-
 private:
     Address m_addr;
 };

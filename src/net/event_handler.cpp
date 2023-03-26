@@ -40,9 +40,6 @@ bool EventHandler::HandleWrite()
 void EventHandler::HandleError()
 {
     EventHandlerPtr handler = shared_from_this();
-
-    EventHandler* t = handler.get();
-    assert(t->GetStream().fd() != INVALID_SOCKET);
     m_loop->Unregister(handler);
 }
 
