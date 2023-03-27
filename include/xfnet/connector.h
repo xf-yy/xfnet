@@ -40,12 +40,12 @@ public:
 
 public:
 
-    Stream Connect(int timeout_ms)
+    Stream Connect(uint32_t timeout_ms)
     {
         return Connect(m_addr, timeout_ms);
     }
 
-    static Stream Connect(Address& addr, int timeout_ms);
+    static Stream Connect(const Address& addr, uint32_t timeout_ms);
 
 private:
     Address m_addr;

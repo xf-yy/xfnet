@@ -1,5 +1,5 @@
 /*************************************************************************
-Copyright (C) 2023 The xfnet Authors. All rights reserved.
+Copyright (C) 2022 The xfnet Authors. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,48 +14,55 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ***************************************************************************/
 
-#ifndef __xfnet_tcp_server_h__
-#define __xfnet_tcp_server_h__
+#ifndef __xfnet_tcp_client_h__
+#define __xfnet_tcp_client_h__
 
 #include "xfnet.h"
+#include "xfnet/queue.h"
 
 using namespace xfutil;
 
 namespace xfnet
 {
 
-
-class TcpServer
+class TcpClient
 {
 public:
-    TcpServer(CreateEventHandlerCallback cb, void* arg = nullptr);
-    ~TcpServer();
-    
+    TcpClient(CreateEventHandlerCallback cb, void* arg = nullptr);
+    ~TcpClient()
+    {}
+
 public:
-    //非线程安全
-    bool Start(const Address& addr, int backlog, int work_thread_num = 4);
+    bool Start(int work_thread_num);
     void Stop();
 
-private:
-    bool Accept(uint32_t timeout_ms);
-    static void AcceptThread(void* arg);
+    void Connect(const Address& addr);
+    bool Connect(const Address& addr, uint32_t timeout_ms);
 
-protected:
+private:
+    bool Connect(uint32_t timeout_ms);
+    static void ConnectThread(void* arg);
+
+private:
     CreateEventHandlerCallback m_create_eventhandler;
     void* m_create_eventhandler_arg;
 
     volatile int m_state;
-    
-    Acceptor m_acceptor;
-    Thread m_accept_thread;
+
+    Thread m_connect_thread;
+    BlockingQueue<Address> m_connect_queue;
+    BlockingQueue<Address> m_failed_queue;
 
     uint32_t m_next_loop_index;
     uint32_t m_loop_num;
     EventLoopGroup m_loop_group;
 
+
 private:
-	TcpServer(const TcpServer&) = delete;
-	TcpServer& operator=(const TcpServer&) = delete;
+
+private:
+	TcpClient(const TcpClient&) = delete;
+	TcpClient& operator=(const TcpClient&) = delete;
 };
 
 

@@ -26,7 +26,7 @@ using namespace xfutil;
 namespace xfnet 
 {
 
-Stream Connector::Connect(Address& addr, int timeout_ms)
+Stream Connector::Connect(const Address& addr, uint32_t timeout_ms)
 {
     int fd = SocketUtil::Open(addr.Family());
     if(fd == INVALID_SOCKET)

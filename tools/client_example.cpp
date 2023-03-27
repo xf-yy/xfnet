@@ -42,9 +42,7 @@ int main(int argc, char* argv[])
     Stream stream = Connector::Connect(addr, 10*1000);
     if(!stream.Valid())
     {
-        char addr_buf[Address::MAX_ADDR_LEN];
-        addr.ToString(addr_buf);
-        printf("cannot connect to: %s, errno:%d\n", addr_buf, errno);
+        printf("connect failed, errno:%d\n", errno);
         return 1;
     }
 
@@ -76,7 +74,7 @@ int main(int argc, char* argv[])
         }
 
         assert(memcmp(buf, buf2, len+HEAD_SIZE) == 0);
-        memset(buf2, 0x00, MAX_SIZE);
+        memset(buf2, 0x00, 100);
     }	
     printf("end test: %ld\n", time(NULL));   
     

@@ -102,7 +102,11 @@ static inline void xfree(void* ptr)
 namespace xfnet
 {
     
+class EventLoop;
+class Stream;
+typedef std::function<bool (EventLoop*, Stream&, void*)> CreateEventHandlerCallback;
 
+#define ERR_TIMEOUT 110 
 }
 
 #endif

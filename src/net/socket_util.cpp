@@ -16,6 +16,7 @@ limitations under the License.
 
 #include <poll.h>
 #include <fcntl.h>
+#include <error.h>
 #include "xfnet.h"
 
 using namespace xfutil;
@@ -96,17 +97,32 @@ bool SocketUtil::SetRecvTimeout(uint32_t timeout_ms)
 
 int SocketUtil::Select(int fd, int events, uint32_t timeout_ms)
 {
-    struct pollfd fds[1];
-    fds[0].fd = fd;
-    fds[0].events = events;      
-    fds[0].revents = 0;
-
-    int ret = poll(fds, 1, timeout_ms);
-    if(ret > 0 && fds[0].revents & POLLERR)
+    for(;;)
     {
-        return -1;
+        struct pollfd fds[1];
+        fds[0].fd = fd;
+        fds[0].events = events;      
+        fds[0].revents = 0;
+
+        int ret = poll(fds, 1, timeout_ms);
+        if(ret > 0)
+        {
+            if((fds[0].revents & POLLERR))
+            {
+                return -1;
+            }
+            else
+            {
+                assert(fds[0].revents > 0);
+                return fds[0].revents;
+            }
+        }
+        else if(ret == 0)
+        {
+            errno = ERR_TIMEOUT;
+        }
+        return ret;
     }
-    return ret;
 }
 
 }
