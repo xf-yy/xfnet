@@ -36,9 +36,9 @@ int main(int argc, char* argv[])
     char buf2[MAX_SIZE+HEAD_SIZE];
 
     time_t start_t = time(NULL);
-    printf("start test: %ld\n", start_t);   
+    //printf("start test: %ld\n", start_t);   
+    
     Address addr("127.0.0.1", PORT);
-
     Stream stream = Connector::Connect(addr, 10*1000);
     if(!stream.Valid())
     {
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
         assert(memcmp(buf, buf2, len+HEAD_SIZE) == 0);
         memset(buf2, 0x00, 100);
     }	
-    printf("end test: %ld\n", time(NULL));   
+    //printf("end test: %ld\n", time(NULL));   
     
 	return 0;
 }

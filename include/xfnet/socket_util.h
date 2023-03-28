@@ -47,6 +47,7 @@ public:
         return (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (const char*)&optval, sizeof(optval)) == 0);
 
     }
+    static int GetError(int fd);
 
     static const int EVENT_READ;
     static const int EVENT_WRITE;

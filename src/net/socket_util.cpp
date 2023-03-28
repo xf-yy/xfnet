@@ -76,6 +76,18 @@ bool SocketUtil::SetReuseAddr(int fd, bool on)
     return true;
 }
 
+int SocketUtil::GetError(int fd)
+{
+    int optval;
+    socklen_t optlen = sizeof(optval);
+
+    if (::getsockopt(fd, SOL_SOCKET, SO_ERROR, &optval, &optlen) == 0)
+    {
+        return optval;
+    }
+    return errno;
+
+}
 
 #if 0
 bool SocketUtil::SetSendTimeout(uint32_t timeout_ms)
@@ -97,6 +109,7 @@ bool SocketUtil::SetRecvTimeout(uint32_t timeout_ms)
 
 int SocketUtil::Select(int fd, int events, uint32_t timeout_ms)
 {
+    int ret;
     for(;;)
     {
         struct pollfd fds[1];
@@ -104,11 +117,12 @@ int SocketUtil::Select(int fd, int events, uint32_t timeout_ms)
         fds[0].events = events;      
         fds[0].revents = 0;
 
-        int ret = poll(fds, 1, timeout_ms);
+        ret = poll(fds, 1, timeout_ms);
         if(ret > 0)
         {
-            if((fds[0].revents & POLLERR))
+            if(fds[0].revents & POLLERR)
             {
+                errno = GetError(fd);
                 return -1;
             }
             else
@@ -120,9 +134,14 @@ int SocketUtil::Select(int fd, int events, uint32_t timeout_ms)
         else if(ret == 0)
         {
             errno = ERR_TIMEOUT;
+            break;
         }
-        return ret;
+        else if(errno != EINTR)
+        {
+            break;
+        }
     }
+    return ret;
 }
 
 }
