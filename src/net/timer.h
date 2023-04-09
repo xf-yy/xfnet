@@ -14,50 +14,65 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ***************************************************************************/
 
-#ifndef __xfnet_tcp_server_h__
-#define __xfnet_tcp_server_h__
+#ifndef __xfnet_timer_h__
+#define __xfnet_timer_h__
 
 #include "xfnet.h"
+#include <sys/timerfd.h>
 
 using namespace xfutil;
+
+#define MAX_EVENTS   1024
 
 namespace xfnet
 {
 
-
-class TcpServer
+class Timer
 {
 public:
-    TcpServer(CreateStreamHandlerCallback cb, void* arg = nullptr);
-    ~TcpServer();
+    Timer(TimerHandlerCallback cb, void* arg = nullptr)
+    {
+        m_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK|TFD_CLOEXEC);
+        m_cb = cb;
+        m_arg = arg;
+    }
     
+    Timer(Timer&& other)
+    {
+        m_fd = other.m_fd;
+        other.m_fd = INVALID_SOCKET;
+
+        m_cb = other.m_cb;
+        m_arg = other.m_arg;
+    }    
+    ~Timer()
+    {
+        if(m_fd != INVALID_SOCKET)
+        {
+        	close(m_fd);
+        }
+    }
+
 public:
-    //非线程安全
-    bool Start(const Address& addr, int backlog, int work_thread_num = 4);
-    void Stop();
+    int fd() const
+    {
+        return m_fd;
+    }
+    void Execute()
+    {
+        assert(m_cb != nullptr);
+        m_cb(this, m_arg);
+    }
+		
+private:
+    int m_fd;
+	TimerHandlerCallback m_cb;
+	void* m_arg;
 
 private:
-    bool Accept(uint32_t timeout_ms);
-    static void AcceptThread(void* arg);
-
-protected:
-    CreateStreamHandlerCallback m_create_eventhandler;
-    void* m_create_eventhandler_arg;
-
-    volatile int m_state;
-    
-    Acceptor m_acceptor;
-    Thread m_accept_thread;
-
-    uint32_t m_next_loop_index;
-    uint32_t m_loop_num;
-    EventLoopGroup m_loop_group;
-
-private:
-	TcpServer(const TcpServer&) = delete;
-	TcpServer& operator=(const TcpServer&) = delete;
+	Timer(const Timer&) = delete;
+	Timer& operator=(const Timer&) = delete;
 };
-
 
 } 
 

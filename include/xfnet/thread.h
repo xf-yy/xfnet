@@ -86,6 +86,10 @@ public:
 	void Start(int thread_count, GThreadFunc func, void* arg = nullptr);
 	void Detach();
 	void Join();
+    size_t Size()
+    {
+        return m_threads.size();
+    }
 	
 private:
 	mutable std::mutex m_mutex;

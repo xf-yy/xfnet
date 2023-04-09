@@ -54,8 +54,7 @@ Stream Connector::Connect(const Address& addr, uint32_t timeout_ms)
         }
     }
     close(fd);
-    fd = INVALID_SOCKET;
-    return Stream(fd);        
+    return Stream(INVALID_SOCKET);        
 
 }
 

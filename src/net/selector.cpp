@@ -43,37 +43,37 @@ void Selector::Close()
 
 bool Selector::Register(EventHandler* handler, uint32_t events)
 {
-    assert(handler->GetStream().fd() != INVALID_SOCKET);
+    assert(handler->fd() != INVALID_SOCKET);
     assert(m_epoll_fd != INVALID_SOCKET);        
     struct epoll_event ee;
     ee.events = events;
     ee.data.ptr = (void *)handler;
 
     assert(m_epoll_fd != INVALID_SOCKET);        
-    return (epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, handler->GetStream().fd(), &ee) == 0);
+    return (epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, handler->fd(), &ee) == 0);
 }
 
 bool Selector::Unregister(EventHandler* handler)
 {
-    assert(handler->GetStream().fd() != INVALID_SOCKET);
+    assert(handler->fd() != INVALID_SOCKET);
     assert(m_epoll_fd != INVALID_SOCKET);        
     struct epoll_event ee;
     ee.events = 0;
     ee.data.ptr = handler;
-    return (epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, handler->GetStream().fd(), &ee) == 0);
+    return (epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, handler->fd(), &ee) == 0);
 
 }
 
 bool Selector::Modify(EventHandler* handler, uint32_t events)
 {
-    assert(handler->GetStream().fd() != INVALID_SOCKET);
+    assert(handler->fd() != INVALID_SOCKET);
     struct epoll_event ee;
 
     ee.events = events;
     ee.data.ptr = (void *) handler;
 
     assert(m_epoll_fd != INVALID_SOCKET);        
-    return (epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, handler->GetStream().fd(), &ee) == 0);
+    return (epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, handler->fd(), &ee) == 0);
 
 }
 

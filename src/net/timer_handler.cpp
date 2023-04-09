@@ -14,52 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ***************************************************************************/
 
-#ifndef __xfnet_tcp_server_h__
-#define __xfnet_tcp_server_h__
 
+#include <sys/epoll.h>
 #include "xfnet.h"
+#include "timer_handler.h"
 
 using namespace xfutil;
 
 namespace xfnet
 {
 
-
-class TcpServer
+bool TimerHandler::HandleRead()
 {
-public:
-    TcpServer(CreateStreamHandlerCallback cb, void* arg = nullptr);
-    ~TcpServer();
-    
-public:
-    //非线程安全
-    bool Start(const Address& addr, int backlog, int work_thread_num = 4);
-    void Stop();
+    uint64_t exp;
 
-private:
-    bool Accept(uint32_t timeout_ms);
-    static void AcceptThread(void* arg);
-
-protected:
-    CreateStreamHandlerCallback m_create_eventhandler;
-    void* m_create_eventhandler_arg;
-
-    volatile int m_state;
-    
-    Acceptor m_acceptor;
-    Thread m_accept_thread;
-
-    uint32_t m_next_loop_index;
-    uint32_t m_loop_num;
-    EventLoopGroup m_loop_group;
-
-private:
-	TcpServer(const TcpServer&) = delete;
-	TcpServer& operator=(const TcpServer&) = delete;
-};
+    ssize_t rsize = read(m_timer.fd(), &exp, sizeof(exp));
+    if (rsize == sizeof(uint64_t))
+    {
+        TimerHandlerPtr handler = std::dynamic_pointer_cast<TimerHandler>(shared_from_this());
+        m_handler_queue.Push(handler);
+    }
+    return true;
+}
 
 
 } 
 
-#endif
 

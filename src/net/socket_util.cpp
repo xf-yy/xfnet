@@ -19,6 +19,8 @@ limitations under the License.
 #include <error.h>
 #include "xfnet.h"
 
+#define REUSEPORT 1
+
 using namespace xfutil;
 
 namespace xfnet 
@@ -67,7 +69,7 @@ bool SocketUtil::SetReuseAddr(int fd, bool on)
     {
         return false;
     }
-    #if defined(SO_REUSEPORT)
+    #if defined(REUSEPORT)
     if(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char*)&option, sizeof(option)) != 0)
     {
         return false;
@@ -120,7 +122,7 @@ int SocketUtil::Select(int fd, int events, uint32_t timeout_ms)
         ret = poll(fds, 1, timeout_ms);
         if(ret > 0)
         {
-            if(fds[0].revents & POLLERR)
+            if(fds[0].revents & (POLLERR|POLLHUP))
             {
                 errno = GetError(fd);
                 return -1;

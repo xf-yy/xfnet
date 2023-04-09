@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ***************************************************************************/
 
-#ifndef __xfnet_tcp_client_h__
-#define __xfnet_tcp_client_h__
+#ifndef __xfnet_timer_manager_h__
+#define __xfnet_timer_manager_h__
 
 #include "xfnet.h"
 #include "xfnet/queue.h"
@@ -25,44 +25,34 @@ using namespace xfutil;
 namespace xfnet
 {
 
-class TcpClient
+typedef void (*TimerHandlerCallback)(void* timer, void* arg);
+class TimerManager
 {
 public:
-    TcpClient(CreateStreamHandlerCallback cb, void* arg = nullptr);
-    ~TcpClient()
+    TimerManager();
+    ~TimerManager()
     {}
 
 public:
     bool Start(int work_thread_num);
     void Stop();
 
-    void Connect(const Address& addr);
-    bool Connect(const Address& addr, uint32_t timeout_ms);
+    void* AddTimer(uint32_t interval_ms, TimerHandlerCallback cb, void* arg = nullptr);
+    bool SetTimer(void* timer, uint32_t interval_ms);
+    bool RemoveTimer(void* timer);
+    
+private:
+    static void WorkThread(int index, void* arg);
 
 private:
-    bool Connect(uint32_t timeout_ms);
-    static void ConnectThread(void* arg);
+    BlockingQueue<TimerHandlerPtr> m_handler_queue;
+    ThreadGroup m_work_threads;
+
+    EventLoop m_loop;
 
 private:
-    CreateStreamHandlerCallback m_create_eventhandler;
-    void* m_create_eventhandler_arg;
-
-    volatile int m_state;
-
-    Thread m_connect_thread;
-    BlockingQueue<Address> m_connect_queue;
-    BlockingQueue<Address> m_failed_queue;
-
-    uint32_t m_next_loop_index;
-    uint32_t m_loop_num;
-    EventLoopGroup m_loop_group;
-
-
-private:
-
-private:
-	TcpClient(const TcpClient&) = delete;
-	TcpClient& operator=(const TcpClient&) = delete;
+	TimerManager(const TimerManager&) = delete;
+	TimerManager& operator=(const TimerManager&) = delete;
 };
 
 

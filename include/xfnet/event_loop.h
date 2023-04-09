@@ -36,24 +36,28 @@ public:
     void Stop();
 
     bool Register(EventHandlerPtr& handler, uint32_t events);
-    bool Unregister(EventHandlerPtr& handler);
+    bool Unregister(EventHandler* handler);
     bool Modify(EventHandler* handler, uint32_t events)
     {
         return m_selector.Modify(handler, events);
     }    
 
 private:    
+    bool Stopping();
+    void Join();
+
     static void LoopThread(void* arg);
 
 private:    
+    volatile int m_state;
 
     Selector m_selector;
     Thread m_thread;
-    volatile int m_state;
 
     std::mutex m_mutex;
     std::unordered_map<EventHandler*, EventHandlerPtr> m_handlers;
 
+    friend class EventLoopGroup;
 private:
 	EventLoop(const EventLoop&) = delete;
 	EventLoop& operator=(const EventLoop&) = delete;
@@ -70,14 +74,13 @@ public:
     }
     ~EventLoopGroup()
     {
-
     }
     
 public:
     bool Start(int loop_count);
     void Stop();
 
-    size_t GetEventLoopCount()
+    size_t Size()
     {
         return m_loops.size();
     }
@@ -86,6 +89,7 @@ public:
         assert(index < m_loops.size());
 	    return m_loops[index].get();
     }
+    
 private:
     std::vector<EventLoopPtr> m_loops;
 

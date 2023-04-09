@@ -25,48 +25,75 @@ namespace xfnet
     {
         m_state = STATE_STOPPED;
     }
+
     EventLoop::~EventLoop()
     {
         assert(m_state == STATE_STOPPED);
     }    
+    
     bool EventLoop::Start()
     {
-        m_state = STATE_STARTED;
         m_selector.Open();
-        m_thread.Start(LoopThread, this);
+        if(!m_thread.Start(LoopThread, this))
+        {
+            return false;
+        }
+        m_state = STATE_STARTED;
         return true;
     }
 
-    void EventLoop::Stop()
+    bool EventLoop::Stopping()
     {
-        if(m_state != STATE_STARTED)
+        if(m_state == STATE_STARTED)
         {
-            return;
+            m_state = STATE_STOPPING;
+            return true;
         }
-        m_state = STATE_STOPPING;
+        return false;
+    }
+
+    void EventLoop::Join()
+    {
         m_thread.Join();
         m_selector.Close();
         m_state = STATE_STOPPED;
     }
 
+    void EventLoop::Stop()
+    {
+        if(Stopping())
+        {
+            Join();
+        }
+    }
+
     bool EventLoop::Register(EventHandlerPtr& handler, uint32_t events)
     {
         m_mutex.lock();
-        m_handlers[handler.get()] = handler;
+        auto pr = m_handlers.insert(std::make_pair(handler.get(), handler));
         m_mutex.unlock();
 
+        if(!pr.second)
+        {
+            return false;
+        }
         return m_selector.Register(handler.get(), events);
     }
     
-    bool EventLoop::Unregister(EventHandlerPtr& handler)
+    bool EventLoop::Unregister(EventHandler* handler)
     {
-        EventHandler* h = handler.get();
+        EventHandlerPtr h_ptr;
 
         m_mutex.lock();
-        size_t cnt = m_handlers.erase(h);
+        auto it = m_handlers.find(handler);
+        if(it != m_handlers.end())
+        {
+            h_ptr = it->second;
+            m_handlers.erase(it);
+        }
         m_mutex.unlock();     
         
-        return cnt == 0 || m_selector.Unregister(h);
+        return (!h_ptr) || m_selector.Unregister(handler);
     }
 
 
@@ -75,10 +102,9 @@ namespace xfnet
         EventLoop* loop = (EventLoop*)arg;
         assert(loop != nullptr);
 
-        while(loop->m_state == STATE_STARTED)
+        while(loop->m_state != STATE_STOPPING)
         {
             loop->m_selector.Select(10*1000);
-
         }
     }    
     
@@ -100,8 +126,12 @@ namespace xfnet
     {
         for(size_t i = 0; i < m_loops.size(); ++i)
         {
-            m_loops[i]->Stop();
+            m_loops[i]->Stopping();
         }
+        for(size_t i = 0; i < m_loops.size(); ++i)
+        {
+            m_loops[i]->Join();
+        }        
     }
 
 } 

@@ -28,10 +28,10 @@ using namespace xfnet;
 //通讯协议[body_size][body]
 //        4B         size
 
-class TestEventHandler : public EventHandler
+class TestEventHandler : public StreamHandler
 {
 public:
-    TestEventHandler(EventLoop* loop, Stream& stream) : EventHandler(loop, stream)
+    TestEventHandler(EventLoop* loop, Stream& stream) : StreamHandler(loop, stream)
     {
         m_recv_head_size = 0;
         m_recv_pkt_size = 0;
@@ -43,7 +43,7 @@ public:
     {
 		std::lock_guard<std::mutex> lock(m_mutex);
         m_send_datas.push_back(data);
-        m_loop->Modify(this, EventHandler::EVENT_READWRITE);
+        m_loop->Modify(this, EVENT_READWRITE);
         return true;
     }
     virtual bool HandleRead() override
@@ -55,8 +55,7 @@ public:
                 int ret = m_stream.Recv(m_head, HEAD_SIZE, m_recv_head_size);
                 if(ret < 0)
                 {
-                    EventHandlerPtr handler = shared_from_this();
-                    m_loop->Unregister(handler);
+                    m_loop->Unregister(this);
                     return false;
                 }
                 else if(ret == 0)
@@ -76,8 +75,7 @@ public:
                 int ret = m_stream.Recv(&m_pkt_data[0], m_pkt_size, m_recv_pkt_size);
                 if(ret < 0)
                 {
-                    EventHandlerPtr handler = shared_from_this();
-                    m_loop->Unregister(handler);
+                    m_loop->Unregister(this);
                     return false;
                 }
                 else if(ret == 0)
@@ -103,7 +101,7 @@ public:
                 std::lock_guard<std::mutex> lock(m_mutex);
                 if(m_send_datas.empty())
                 {
-                    m_loop->Modify(this, EventHandler::EVENT_READ);
+                    m_loop->Modify(this, EVENT_READ);
                     break;
                 }
                 m_send_data = m_send_datas.front();
@@ -114,8 +112,7 @@ public:
             int ret = m_stream.Send(m_send_data.data(), m_send_data.size(), m_send_off);
             if(ret < 0)
             {
-                EventHandlerPtr handler = shared_from_this();
-                m_loop->Unregister(handler);
+                m_loop->Unregister(this);
                 return false;
             }
             else if(ret == 0)
@@ -131,7 +128,7 @@ public:
     static bool CreateEventHandler(EventLoop* loop, Stream& stream, void* arg)
     {
         std::shared_ptr<EventHandler> handler =  std::make_shared<TestEventHandler>(loop, stream);
-        return loop->Register(handler, EventHandler::EVENT_READ);
+        return loop->Register(handler, EVENT_READ);
     }
 
 private:
@@ -150,6 +147,10 @@ private:
     ssize_t m_send_off;
 };
 
+void TestTimerHandlerCallback(void* timer, void* arg)
+{
+    printf("timer handler called\n");
+}
 
 int main(int argc, char* argv[])
 {
@@ -159,12 +160,26 @@ int main(int argc, char* argv[])
     bool ret = server.Start(addr, 1024);
     if(!ret)
     {
-        printf("cannot start server\n");
+        printf("cannot start server, errno: %d\n", errno);
+        Thread::Sleep(1000);
         return 1;
     }
 
-    Thread::Sleep(100*1000);
+    TimerManager tm;
+    tm.Start(2);
+
+    void* timer = tm.AddTimer(500, TestTimerHandlerCallback);
+    printf("add timer\n");
+
+    Thread::Sleep(10*1000);
 	
+    tm.RemoveTimer(timer);
+    printf("remove timer\n");
+
+    Thread::Sleep(10*1000);
+
+    printf("stopping\n");
+    tm.Stop();
     server.Stop();
 	return 0;
 }

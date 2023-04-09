@@ -25,12 +25,10 @@ namespace xfnet
 {
 
 class EventLoop;
-
 class EventHandler : public std::enable_shared_from_this<EventHandler>
 {
 public:
-    EventHandler(EventLoop* loop, Stream& stream)
-    : m_loop(loop), m_stream(std::move(stream))
+    EventHandler(EventLoop* loop)  : m_loop(loop)
     {}
 
     virtual ~EventHandler()
@@ -41,10 +39,7 @@ public:
     {
         return m_loop;
     }
-    Stream& GetStream()
-    {
-        return m_stream;
-    }
+    virtual fd_t fd() const = 0;
 
     static const int EVENT_READ;
     static const int EVENT_WRITE;
@@ -58,16 +53,16 @@ protected:
     
 protected:
     EventLoop* m_loop;
-    Stream m_stream;
 
     friend class Selector;
+
 private:
 	EventHandler(const EventHandler&) = delete;
 	EventHandler& operator=(const EventHandler&) = delete;
 };
 
 typedef std::shared_ptr<EventHandler> EventHandlerPtr;
-#define NewEventHandler std::make_shared<EventHandler>
+
 
 } 
 

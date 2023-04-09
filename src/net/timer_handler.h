@@ -14,49 +14,47 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ***************************************************************************/
 
-#ifndef __xfnet_tcp_server_h__
-#define __xfnet_tcp_server_h__
+#ifndef __xfnet_timer_handler_h__
+#define __xfnet_timer_handler_h__
 
 #include "xfnet.h"
+#include "timer.h"
 
 using namespace xfutil;
 
 namespace xfnet
 {
 
+class EventLoop;
 
-class TcpServer
+class TimerHandler : public EventHandler
 {
 public:
-    TcpServer(CreateStreamHandlerCallback cb, void* arg = nullptr);
-    ~TcpServer();
-    
-public:
-    //非线程安全
-    bool Start(const Address& addr, int backlog, int work_thread_num = 4);
-    void Stop();
+    TimerHandler(EventLoop* loop, Timer& timer, BlockingQueue<TimerHandlerPtr>& handler_queue)
+    : EventHandler(loop), m_timer(std::move(timer)), m_handler_queue(handler_queue)
+    {}
 
-private:
-    bool Accept(uint32_t timeout_ms);
-    static void AcceptThread(void* arg);
-
+    virtual fd_t fd() const
+    {
+        return m_timer.fd();
+    }
+    void HandleTimeout()
+    {
+        m_timer.Execute();
+    }
 protected:
-    CreateStreamHandlerCallback m_create_eventhandler;
-    void* m_create_eventhandler_arg;
-
-    volatile int m_state;
+    //继续处理时返回true，否则返回false
+    virtual bool HandleRead();
     
-    Acceptor m_acceptor;
-    Thread m_accept_thread;
-
-    uint32_t m_next_loop_index;
-    uint32_t m_loop_num;
-    EventLoopGroup m_loop_group;
+protected:
+    Timer m_timer;
+    BlockingQueue<TimerHandlerPtr>& m_handler_queue;
 
 private:
-	TcpServer(const TcpServer&) = delete;
-	TcpServer& operator=(const TcpServer&) = delete;
+	TimerHandler(const TimerHandler&) = delete;
+	TimerHandler& operator=(const TimerHandler&) = delete;
 };
+
 
 
 } 

@@ -24,12 +24,14 @@ limitations under the License.
 #include "xfnet/connector.h"
 #include "xfnet/acceptor.h"
 #include "xfnet/event_handler.h"
+#include "xfnet/stream_handler.h"
 #include "xfnet/selector.h"
 #include "xfnet/thread.h"
 #include "xfnet/rwlock.h"
 #include "xfnet/event_loop.h"
 #include "xfnet/tcp_client.h"
 #include "xfnet/tcp_server.h"
+#include "xfnet/timer_manager.h"
 
 #if __cplusplus < 201103L
 #error "only support c++ 11 or later, use -std=c++11 option for compile"

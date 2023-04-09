@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
     if(!stream.Valid())
     {
         printf("connect failed, errno:%d\n", errno);
+        Thread::Sleep(1000);
         return 1;
     }
 

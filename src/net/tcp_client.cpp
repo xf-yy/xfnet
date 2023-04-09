@@ -22,7 +22,7 @@ using namespace xfutil;
 namespace xfnet
 {
 
-TcpClient::TcpClient(CreateEventHandlerCallback cb, void* arg/* = nullptr*/) 
+TcpClient::TcpClient(CreateStreamHandlerCallback cb, void* arg/* = nullptr*/) 
     : m_create_eventhandler(cb), m_create_eventhandler_arg(arg)
 {
     m_loop_num = 0;
@@ -34,12 +34,17 @@ bool TcpClient::Start(int work_thread_num)
 {
     assert(m_state == STATE_STOPPED);
 
-    m_state = STATE_STARTED;
-
     m_loop_num = work_thread_num;
-    m_loop_group.Start(work_thread_num);
-    return m_connect_thread.Start(ConnectThread, this);
-
+    if(!m_loop_group.Start(work_thread_num))
+    {
+        return false;
+    }
+    if(!m_connect_thread.Start(ConnectThread, this))
+    {
+        return false;
+    }
+    m_state = STATE_STARTED;
+    return true;
 }
 
 void TcpClient::Stop()
@@ -100,7 +105,7 @@ bool TcpClient::Connect(uint32_t timeout_ms)
 void TcpClient::ConnectThread(void* arg)
 {
     TcpClient* client = (TcpClient*)arg; 
-    while(client->m_state == STATE_STARTED)
+    while(client->m_state != STATE_STOPPING)
     {
         client->Connect(10*1000);
     }

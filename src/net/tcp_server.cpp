@@ -23,7 +23,7 @@ using namespace xfutil;
 namespace xfnet
 {
 
-TcpServer::TcpServer(CreateEventHandlerCallback cb, void* arg/* = nullptr*/) 
+TcpServer::TcpServer(CreateStreamHandlerCallback cb, void* arg/* = nullptr*/) 
     : m_create_eventhandler(cb), m_create_eventhandler_arg(arg)
 {
     m_loop_num = 0;
@@ -40,12 +40,23 @@ bool TcpServer::Start(const Address& addr, int backlog, int work_thread_num/* = 
 {
     assert(m_state == STATE_STOPPED);
 
-    m_state = STATE_STARTED;
-    m_acceptor.Open(addr, backlog);
+    if(!m_acceptor.Open(addr, backlog))
+    {
+        return false;
+    }
 
     m_loop_num = work_thread_num;
-    m_loop_group.Start(work_thread_num);
-    return m_accept_thread.Start(AcceptThread, this);
+    if(!m_loop_group.Start(work_thread_num))
+    {
+        return false;
+    }
+    if(!m_accept_thread.Start(AcceptThread, this))
+    {
+        return false;
+    }
+    
+    m_state = STATE_STARTED;
+    return true;
 }
 
 void TcpServer::Stop()
@@ -80,7 +91,7 @@ bool TcpServer::Accept(uint32_t timeout_ms)
 void TcpServer::AcceptThread(void* arg)
 {
     TcpServer* server = (TcpServer*)arg;
-    while(server->m_state == STATE_STARTED)
+    while(server->m_state != STATE_STOPPING)
     {
         server->Accept(10*1000);
     }

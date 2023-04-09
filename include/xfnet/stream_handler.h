@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ***************************************************************************/
 
-#ifndef __xfnet_tcp_server_h__
-#define __xfnet_tcp_server_h__
+#ifndef __xfnet_stream_handler_h__
+#define __xfnet_stream_handler_h__
 
 #include "xfnet.h"
 
@@ -24,40 +24,28 @@ using namespace xfutil;
 namespace xfnet
 {
 
-
-class TcpServer
+class StreamHandler : public EventHandler
 {
 public:
-    TcpServer(CreateStreamHandlerCallback cb, void* arg = nullptr);
-    ~TcpServer();
+    StreamHandler(EventLoop* loop, Stream& stream)
+    : EventHandler(loop), m_stream(std::move(stream))
+    {}
+
+    virtual fd_t fd() const
+    {
+        return m_stream.fd();
+    }
     
-public:
-    //非线程安全
-    bool Start(const Address& addr, int backlog, int work_thread_num = 4);
-    void Stop();
-
-private:
-    bool Accept(uint32_t timeout_ms);
-    static void AcceptThread(void* arg);
-
 protected:
-    CreateStreamHandlerCallback m_create_eventhandler;
-    void* m_create_eventhandler_arg;
-
-    volatile int m_state;
-    
-    Acceptor m_acceptor;
-    Thread m_accept_thread;
-
-    uint32_t m_next_loop_index;
-    uint32_t m_loop_num;
-    EventLoopGroup m_loop_group;
+    Stream m_stream;
 
 private:
-	TcpServer(const TcpServer&) = delete;
-	TcpServer& operator=(const TcpServer&) = delete;
+	StreamHandler(const StreamHandler&) = delete;
+	StreamHandler& operator=(const StreamHandler&) = delete;
 };
 
+typedef std::shared_ptr<StreamHandler> StreamHandlerPtr;
+#define NewStreamHandler std::make_shared<StreamHandler>
 
 } 
 

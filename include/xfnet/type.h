@@ -104,7 +104,11 @@ namespace xfnet
     
 class EventLoop;
 class Stream;
-typedef std::function<bool (EventLoop*, Stream&, void*)> CreateEventHandlerCallback;
+typedef std::function<bool (EventLoop*, Stream&, void*)> CreateStreamHandlerCallback;
+
+class TimerHandler;
+typedef std::shared_ptr<TimerHandler> TimerHandlerPtr;
+#define NewTimerHandler std::make_shared<TimerHandler>
 
 #define ERR_TIMEOUT 110 
 }

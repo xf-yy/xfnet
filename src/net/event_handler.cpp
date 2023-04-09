@@ -39,12 +39,8 @@ bool EventHandler::HandleWrite()
 
 void EventHandler::HandleError()
 {
-    EventHandlerPtr handler = shared_from_this();
-    m_loop->Unregister(handler);
+    m_loop->Unregister(this);
 }
-
-
-
 
 
 } 

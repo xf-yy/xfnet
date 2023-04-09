@@ -29,17 +29,13 @@ bool Acceptor::Open(const Address& addr, int backlog, int family/* = AF_INET*/)
     {
         return false;
     }
-
+    SocketUtil::SetReuseAddr(m_fd, true);
     if(bind(m_fd, addr.SockAddr(), addr.Size()) != 0)
     {
         Close();
         return false;
     }
-    if(listen(m_fd, backlog) != 0)
-    {
-        Close();
-        return false;
-    }
+    listen(m_fd, backlog);
 
     return true;    
 }
