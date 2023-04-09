@@ -27,7 +27,6 @@ limitations under the License.
 #include "xfnet/stream_handler.h"
 #include "xfnet/selector.h"
 #include "xfnet/thread.h"
-#include "xfnet/rwlock.h"
 #include "xfnet/event_loop.h"
 #include "xfnet/tcp_client.h"
 #include "xfnet/tcp_server.h"
