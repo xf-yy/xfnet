@@ -53,7 +53,7 @@ public:
     static const int EVENT_WRITE;
     static const int EVENT_READWRITE;
 
-    //-1表示错误，0表示超时，正数表示事件
+    //-2表示对方socket关闭，-1表示错误，0表示超时，正数表示事件
     static int Select(int fd, int events, uint32_t timeout_ms);
 
 };

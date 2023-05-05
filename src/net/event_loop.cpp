@@ -21,6 +21,8 @@ using namespace xfutil;
 
 namespace xfnet
 {
+    #define SELECT_TIMEOUT  5000
+
     EventLoop::EventLoop()
     {
         m_state = STATE_STOPPED;
@@ -104,7 +106,7 @@ namespace xfnet
 
         while(loop->m_state != STATE_STOPPING)
         {
-            loop->m_selector.Select(10*1000);
+            loop->m_selector.Select(SELECT_TIMEOUT);
         }
     }    
     

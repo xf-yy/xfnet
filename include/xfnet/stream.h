@@ -28,7 +28,17 @@ using namespace xfutil;
 namespace xfnet 
 {
 
-//nonblock
+#ifdef _WIN32
+struct iovec_t
+{
+    void  *iov_base;   
+    size_t iov_len;  
+};
+#else
+typedef struct iovec iovec_t;
+#endif
+
+//非阻塞模式
 class Stream
 {
 public:
@@ -67,7 +77,6 @@ public:
         return (setsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size)) == 0);
     }
 
-
     bool GetLocalAddress(Address& addr)
     {
         socklen_t size = addr.Size();
@@ -79,31 +88,17 @@ public:
         return (getpeername(m_fd, addr.SockAddr(), &size) == 0);
     }
 
-    ssize_t Send(const void* data, ssize_t size)
-    {
-        return write(m_fd, data, size);
-    }
     //-1:表示发送错误，0表示部分发送成功，1表示全部发送成功
-    int Send(const void* data, ssize_t size, ssize_t& sent_size);
-
-    ssize_t Send(const void* data, ssize_t size, uint32_t timeout_ms);
-    ssize_t Send(const struct iovec *iov, int iovcnt)
-    {
-        return writev(m_fd, iov, iovcnt);
-    }
+    int Send(void*& data, ssize_t& size);
+    int Send(iovec_t*& iov, int& iovcnt);
+    //-1:表示发送错误，0表示超时，1表示全部发送成功
+    int Send(const void* data, ssize_t size, uint32_t timeout_ms);
     
-    ssize_t Recv(void *buf, size_t size)
-    {
-        return read(m_fd, buf, size);
-    }
-    //-2：表示对方socket关闭，-1:表示介绍错误，0表示部分接收成功，1表示全部接收成功
-    int Recv(void* data, ssize_t size, ssize_t& recv_size);
-
-    ssize_t Recv(void *buf, size_t size, uint32_t timeout_ms);  
-    ssize_t Recv(const struct iovec *iov, int iovcnt)
-    {
-        return readv(m_fd, iov, iovcnt);
-    }
+    //-2：表示对方socket关闭，-1:表示接收错误，0表示部分接收成功，1表示全部接收成功
+    int Recv(void*& data, ssize_t& size);
+    int Recv(iovec_t*& iov, int& iovcnt);
+    //-2：表示对方socket关闭，-1:表示接收错误，0表示超时，1表示全部接收成功    
+    int Recv(void *buf, size_t size, uint32_t timeout_ms);  
 
 private:
     int m_fd;

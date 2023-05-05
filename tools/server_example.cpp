@@ -33,10 +33,11 @@ class TestEventHandler : public StreamHandler
 public:
     TestEventHandler(EventLoop* loop, Stream& stream) : StreamHandler(loop, stream)
     {
-        m_recv_head_size = 0;
-        m_recv_pkt_size = 0;
+        m_head_ptr = m_head;
+        m_head_size = HEAD_SIZE;
 
-        m_send_off = 0;
+        m_body_size = 0;
+        m_send_size = 0;
     }
 public:
     bool Send(std::string& data)
@@ -50,9 +51,9 @@ public:
     {
         for(;;)
         {
-            if(m_recv_head_size < HEAD_SIZE)
+            if(m_head_size != 0)
             {
-                int ret = m_stream.Recv(m_head, HEAD_SIZE, m_recv_head_size);
+                int ret = m_stream.Recv(m_head_ptr, m_head_size);
                 if(ret < 0)
                 {
                     m_loop->Unregister(this);
@@ -62,17 +63,16 @@ public:
                 {
                     break;
                 }
-                assert(m_recv_head_size == HEAD_SIZE);
+                assert(m_head_size == 0);
 
-                m_pkt_size = *(int*)m_head + HEAD_SIZE;
-                m_pkt_data.resize(m_pkt_size);
-                *(int*)&m_pkt_data[0] = m_pkt_size - HEAD_SIZE;
-                m_recv_pkt_size = HEAD_SIZE;
-
+                m_body_size = *(int*)m_head;
+                m_pkt_data.resize(HEAD_SIZE + m_body_size);
+                *(int*)&m_pkt_data[0] = m_body_size;
+                m_body_ptr = (char*)m_pkt_data.data() + HEAD_SIZE;
             }
             else
             {
-                int ret = m_stream.Recv(&m_pkt_data[0], m_pkt_size, m_recv_pkt_size);
+                int ret = m_stream.Recv(m_body_ptr, m_body_size);
                 if(ret < 0)
                 {
                     m_loop->Unregister(this);
@@ -82,12 +82,11 @@ public:
                 {
                     break;
                 }
-                assert(m_recv_pkt_size == m_pkt_size);
+                assert(m_body_size == 0);
 
                 Send(m_pkt_data);
-                m_recv_head_size = 0;
-                m_recv_pkt_size = 0;
-
+                m_head_ptr = m_head;
+                m_head_size = HEAD_SIZE;
             }
         }
         return true;
@@ -96,7 +95,7 @@ public:
     {
         for(;;)
         {            
-            if((size_t)m_send_off == m_send_data.size())
+            if(m_send_size == 0)
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
                 if(m_send_datas.empty())
@@ -104,12 +103,11 @@ public:
                     m_loop->Modify(this, EVENT_READ);
                     break;
                 }
-                m_send_data = m_send_datas.front();
-                m_send_datas.pop_front();
-                m_send_off = 0;
+                const std::string& data = m_send_datas.front();
+                m_send_ptr = (void*)data.data();
+                m_send_size = data.size();
             }
-            assert((size_t)m_send_off != m_send_data.size());
-            int ret = m_stream.Send(m_send_data.data(), m_send_data.size(), m_send_off);
+            int ret = m_stream.Send(m_send_ptr, m_send_size);
             if(ret < 0)
             {
                 m_loop->Unregister(this);
@@ -119,8 +117,10 @@ public:
             {
                 break;
             }
-            assert((size_t)m_send_off == m_send_data.size());
-
+            assert((size_t)m_send_size == 0);
+            std::lock_guard<std::mutex> lock(m_mutex);
+            assert(!m_send_datas.empty());
+            m_send_datas.pop_front();
         }
         return true;
     }
@@ -138,22 +138,25 @@ private:
 
     char m_head[HEAD_SIZE];
     std::string m_pkt_data;
-    int m_pkt_size;
-    ssize_t m_recv_head_size;
-    ssize_t m_recv_pkt_size;
+
+    void* m_head_ptr;
+    ssize_t m_head_size;
+    void* m_body_ptr;
+    ssize_t m_body_size;
 
     std::deque<std::string> m_send_datas;
-    std::string m_send_data;
-    ssize_t m_send_off;
+    void* m_send_ptr;
+    ssize_t m_send_size;
 };
 
 void TestTimerHandlerCallback(void* timer, void* arg)
 {
-    printf("timer handler called\n");
+    //printf("timer handler called\n");
 }
 
 int main(int argc, char* argv[])
 {
+    time_t start_time = time(NULL);
     Address addr("127.0.0.1", PORT);
 
     TcpServer server(TestEventHandler::CreateEventHandler, nullptr);
@@ -169,18 +172,19 @@ int main(int argc, char* argv[])
     tm.Start(2);
 
     void* timer = tm.AddTimer(500, TestTimerHandlerCallback);
-    printf("add timer\n");
 
     Thread::Sleep(10*1000);
 	
     tm.RemoveTimer(timer);
-    printf("remove timer\n");
 
     Thread::Sleep(10*1000);
 
-    printf("stopping\n");
+    printf("server stopping: %ld\n", time(NULL));
     tm.Stop();
     server.Stop();
+    
+    printf("server start time:%ld, cost: %lds\n\n\n", start_time, time(NULL)-start_time);   
+
 	return 0;
 }
 

@@ -28,7 +28,7 @@ namespace xfnet
 class TcpClient
 {
 public:
-    TcpClient(CreateStreamHandlerCallback cb, void* arg = nullptr);
+    TcpClient(CreateStreamHandlerCallback cb, void* arg = nullptr, uint32_t connect_timeout_ms = 10000);
     ~TcpClient()
     {}
 
@@ -36,16 +36,17 @@ public:
     bool Start(int work_thread_num);
     void Stop();
 
-    void Connect(const Address& addr);
-    bool Connect(const Address& addr, uint32_t timeout_ms);
+    void Add(const Address& addr);
+    bool Add(Stream& stream);
 
 private:
-    bool Connect(uint32_t timeout_ms);
+    bool Connect();
     static void ConnectThread(void* arg);
 
 private:
-    CreateStreamHandlerCallback m_create_eventhandler;
+    CreateStreamHandlerCallback m_create_eventhandler_func;
     void* m_create_eventhandler_arg;
+    const uint32_t m_connect_timeout_ms;
 
     volatile int m_state;
 
@@ -56,9 +57,6 @@ private:
     uint32_t m_next_loop_index;
     uint32_t m_loop_num;
     EventLoopGroup m_loop_group;
-
-
-private:
 
 private:
 	TcpClient(const TcpClient&) = delete;

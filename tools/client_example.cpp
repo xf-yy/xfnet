@@ -29,14 +29,13 @@ using namespace xfnet;
 //        4B         size
 int main(int argc, char* argv[])
 {
+    time_t start_time = time(NULL);
+
     const int HEAD_SIZE = 4;
     const int MAX_SIZE = 4096;
 
     char buf[MAX_SIZE+HEAD_SIZE];
     char buf2[MAX_SIZE+HEAD_SIZE];
-
-    time_t start_t = time(NULL);
-    //printf("start test: %ld\n", start_t);   
     
     Address addr("127.0.0.1", PORT);
     Stream stream = Connector::Connect(addr, 10*1000);
@@ -47,13 +46,15 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    srand(start_t);
+    srand(time(NULL));
     for(int i = 0; i < MAX_SIZE + HEAD_SIZE; ++i)
     {
         buf[i] = rand();
     }
  
-    for(int i = 0; i < 256; ++i)
+    const int MAX = 1024;
+    int i;
+    for(i = 0; i < MAX; ++i)
     {
         int len = rand() % MAX_SIZE;
         if(len < 512) len += 512;
@@ -61,23 +62,40 @@ int main(int argc, char* argv[])
         *(int*)buf = len;
 
         int wlen = stream.Send(buf, len+HEAD_SIZE, 10*1000);
-        if(wlen != 1)
+        if(wlen == 0)
+        {
+            printf("send timeout\n");
+            break;
+        }
+        else if(wlen != 1)
         {
             printf("send failed, errno:%d\n",  errno);
             break;
         }
 
         int rlen = stream.Recv(buf2, len+HEAD_SIZE, 10*1000);
-        if(rlen != 1)
+        if(rlen == 0)
+        {
+            printf("recv timeout\n");
+            break;
+        }
+        else if(rlen == -1)
         {
             printf("recv failed, errno:%d\n",  errno);
             break;
         }
+        else if(rlen == -2)
+        {
+            printf("recv failed, remote client closed\n");
+            break;
+        }
 
         assert(memcmp(buf, buf2, len+HEAD_SIZE) == 0);
-        memset(buf2, 0x00, 100);
+        memset(buf2, 0xcc, len+HEAD_SIZE);
     }	
-    //printf("end test: %ld\n", time(NULL));   
+    if(i < MAX)
+        printf("test start time:%ld, cost: %lds\n\n\n", start_time, time(NULL)-start_time);   
+
     
 	return 0;
 }

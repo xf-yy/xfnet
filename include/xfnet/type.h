@@ -96,7 +96,6 @@ static inline void xfree(void* ptr)
 	free(ptr);
 }
 
-
 }
 
 namespace xfnet

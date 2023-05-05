@@ -125,7 +125,7 @@ int SocketUtil::Select(int fd, int events, uint32_t timeout_ms)
             if(fds[0].revents & (POLLERR|POLLHUP))
             {
                 errno = GetError(fd);
-                return -1;
+                return errno == ECONNRESET ? -2 : -1;
             }
             else
             {

@@ -22,8 +22,8 @@ using namespace xfutil;
 namespace xfnet
 {
 
-TcpClient::TcpClient(CreateStreamHandlerCallback cb, void* arg/* = nullptr*/) 
-    : m_create_eventhandler(cb), m_create_eventhandler_arg(arg)
+TcpClient::TcpClient(CreateStreamHandlerCallback cb, void* arg/* = nullptr*/, uint32_t connect_timeout_ms/* = 10000*/) 
+    : m_create_eventhandler_func(cb), m_create_eventhandler_arg(arg), m_connect_timeout_ms(connect_timeout_ms)
 {
     m_loop_num = 0;
     m_next_loop_index = 0;
@@ -58,33 +58,26 @@ void TcpClient::Stop()
     m_loop_group.Stop();
 
     m_state = STATE_STOPPED;
-
 }
 
 //为一次性连接，如果连接断了，需要重新加入
-void TcpClient::Connect(const Address& addr)
+void TcpClient::Add(const Address& addr)
 {
     m_connect_queue.Push(addr);
 }
 
-bool TcpClient::Connect(const Address& addr, uint32_t timeout_ms)
+bool TcpClient::Add(Stream& stream)
 {
-    Stream stream = Connector::Connect(addr, timeout_ms);
-    if(!stream.Valid())
-    {
-        return false;
-    }
-
     assert(m_loop_num != 0);
     EventLoop* loop = m_loop_group.GetEventLoop(m_next_loop_index++ % m_loop_num);
 
-    return m_create_eventhandler(loop, stream, m_create_eventhandler_arg); 
+    return m_create_eventhandler_func(loop, stream, m_create_eventhandler_arg); 
 }
 
-bool TcpClient::Connect(uint32_t timeout_ms)
+bool TcpClient::Connect()
 {
     Address addr;
-    if(!m_connect_queue.Pop(addr, timeout_ms))
+    if(!m_connect_queue.Pop(addr, m_connect_timeout_ms))
     {
         //将failed中的addr迁移至connect队列
         while(m_failed_queue.TryPop(addr))
@@ -93,8 +86,13 @@ bool TcpClient::Connect(uint32_t timeout_ms)
         }
         return false;
     }
+    Stream stream = Connector::Connect(addr, m_connect_timeout_ms);
+    if(!stream.Valid())
+    {
+        return false;
+    }
 
-    if(Connect(addr, timeout_ms))
+    if(Add(stream))
     {
         return true;
     }
@@ -107,7 +105,7 @@ void TcpClient::ConnectThread(void* arg)
     TcpClient* client = (TcpClient*)arg; 
     while(client->m_state != STATE_STOPPING)
     {
-        client->Connect(10*1000);
+        client->Connect();
     }
 }
 

@@ -23,8 +23,10 @@ using namespace xfutil;
 namespace xfnet
 {
 
+#define ACCEPT_TIMEOUT  5000
+ 
 TcpServer::TcpServer(CreateStreamHandlerCallback cb, void* arg/* = nullptr*/) 
-    : m_create_eventhandler(cb), m_create_eventhandler_arg(arg)
+    : m_create_eventhandler_func(cb), m_create_eventhandler_arg(arg)
 {
     m_loop_num = 0;
     m_next_loop_index = 0;
@@ -73,10 +75,10 @@ void TcpServer::Stop()
 }
 
 
-bool TcpServer::Accept(uint32_t timeout_ms)
+bool TcpServer::Accept()
 {    
     Address addr;
-    Stream stream = m_acceptor.Accept(addr, timeout_ms);
+    Stream stream = m_acceptor.Accept(addr, ACCEPT_TIMEOUT);
     if(!stream.Valid())
     {
         //输出日志
@@ -85,7 +87,7 @@ bool TcpServer::Accept(uint32_t timeout_ms)
     assert(m_loop_num != 0);
     EventLoop* loop = m_loop_group.GetEventLoop(m_next_loop_index++ % m_loop_num);
 
-    return m_create_eventhandler(loop, stream, m_create_eventhandler_arg);
+    return m_create_eventhandler_func(loop, stream, m_create_eventhandler_arg);
 }
 
 void TcpServer::AcceptThread(void* arg)
@@ -93,7 +95,7 @@ void TcpServer::AcceptThread(void* arg)
     TcpServer* server = (TcpServer*)arg;
     while(server->m_state != STATE_STOPPING)
     {
-        server->Accept(10*1000);
+        server->Accept();
     }
 }
 

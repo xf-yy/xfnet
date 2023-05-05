@@ -37,11 +37,11 @@ public:
     void Stop();
 
 private:
-    bool Accept(uint32_t timeout_ms);
+    bool Accept();
     static void AcceptThread(void* arg);
 
 protected:
-    CreateStreamHandlerCallback m_create_eventhandler;
+    CreateStreamHandlerCallback m_create_eventhandler_func;
     void* m_create_eventhandler_arg;
 
     volatile int m_state;
